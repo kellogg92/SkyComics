@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Skybox (Three.js)</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel=stylesheet href="css/base.css"/>
+</head>
+<body>
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script> -->
+<script src="js/three.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/Stats.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+
+<script src="SkyboxControl.js"></script> 
+<script src="js/jquery-1.11.2.min.js"></script>
+
+</div>
+<!-- ------------------------------------------------------------ -->
+
+<div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
+<script>
+// MAIN
+
+// standard global variables
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+	// SCENE
+	scene = new THREE.Scene();
+	// Camera Setup
+	camera = new THREE.PerspectiveCamera( 40, window.innerWidth/ window.innerHeight, 0.1, 20000);
+	scene.add(camera);
+	camera.position.set(0,0,0);
+	camera.lookAt(new THREE.Vector3(1,0,0));	
+  
+	// Renderer setup
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer();
+  
+  renderer.setSize(window.innerWidth, window.innerHeight);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	
+  // Setup events
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+  
+	// add skybox view control
+  controls = new SkyboxControl(camera, renderer.domElement);
+  
+	// Add Stats
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.bottom = '0px';
+	stats.domElement.style.zIndex = 100;
+	container.appendChild( stats.domElement );
+	
+	var imagePrefix = "images/dawnmountain-";
+	var directions  = ["xpos", "xneg", "ypos", "yneg", "zpos", "zneg"];
+	var imageSuffix = ".png";
+	var skyGeometry = new THREE.BoxGeometry( 5000, 5000, 5000 );	
+	
+	var materialArray = [];
+	for (var i = 0; i < 6; i++)
+		materialArray.push( new THREE.MeshBasicMaterial({
+			map: THREE.ImageUtils.loadTexture( imagePrefix + directions[i] + imageSuffix ),
+			side: THREE.BackSide
+		}));
+	var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+	var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+	scene.add( skyBox );
+}
+
+function animate() 
+{
+  requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function update()
+{
+	if ( keyboard.pressed("z") ) 
+	{ 
+		// do something
+	}
+  
+	stats.update();
+}
+
+function render() 
+{
+	renderer.render( scene, camera );
+}
+
+function onMouseDown(event){
+  var sphereGeo = new THREE.SphereGeometry( 1, 32, 32 );
+  var sphereMat = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+  var sphere = new THREE.Mesh(sphereGeo, sphereMat);
+  scene.add( sphere );
+  var vec = new THREE.Vector3( (event.clientX / window.innerWidth ) * 2 - 1,
+                              - ( event.clientY / window.innerHeight ) * 2 + 1,
+                              0.5);
+  vec.unproject(camera);
+  vec.normalize().multiplyScalar(50);
+  sphere.position.set(vec.x,vec.y,vec.z);
+  
+}
+
+renderer.domElement.addEventListener( 'mousedown', onMouseDown, false );
+
+</script>
+
+</body>
+</html>
