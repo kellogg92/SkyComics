@@ -34,13 +34,18 @@ SkyboxControl = function(camera, domElement){
   }
   
   this.onMouseDown = function (event){
-    this.prevMouseX = event.clientX;
-    this.prevMouseY = event.clientY;
-    this.down = true;
+    // Only capture right mouse button
+    if (event.button == 2){
+      this.prevMouseX = event.clientX;
+      this.prevMouseY = event.clientY;
+      this.down = true;
+    }
   };
   
   this.onMouseUp = function(event){
-    this.down = false;
+    if (event.button == 2){
+      this.down = false;
+    }
   }
   
   function onMouseWheel(event){

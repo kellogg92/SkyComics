@@ -17,6 +17,7 @@
 <script src="js/THREEx.WindowResize.js"></script>
 
 <script src="SkyboxControl.js"></script> 
+<script src="CubeCam.js"></script> 
 <script src="js/jquery-1.11.2.min.js"></script>
 
 </div>
@@ -35,8 +36,7 @@ init();
 animate();
 
 // FUNCTIONS 		
-function init() 
-{
+function init() {
 	// SCENE
 	scene = new THREE.Scene();
 	// Camera Setup
@@ -85,15 +85,13 @@ function init()
 	scene.add( skyBox );
 }
 
-function animate() 
-{
+function animate() {
   requestAnimationFrame( animate );
 	render();		
 	update();
 }
 
-function update()
-{
+function update(){
 	if ( keyboard.pressed("z") ) 
 	{ 
 		// do something
@@ -102,28 +100,59 @@ function update()
 	stats.update();
 }
 
-function render() 
-{
+function render() {
 	renderer.render( scene, camera );
 }
 
-function onMouseDown(event){
-  var sphereGeo = new THREE.SphereGeometry( 1, 32, 32 );
-  var sphereMat = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+var sphereGeo = new THREE.SphereGeometry( 1, 10, 10 );
+var sphereMat = new THREE.MeshBasicMaterial( {color: 0x44dddd} );
+
+function addSphere(screenX, screenY, screenRad){
+//TODO: use screenRad  
   var sphere = new THREE.Mesh(sphereGeo, sphereMat);
   scene.add( sphere );
-  var vec = new THREE.Vector3( (event.clientX / window.innerWidth ) * 2 - 1,
-                              - ( event.clientY / window.innerHeight ) * 2 + 1,
+  var vec = new THREE.Vector3( (screenX / window.innerWidth ) * 2 - 1,
+                              - (screenY / window.innerHeight ) * 2 + 1,
                               0.5);
   vec.unproject(camera);
-  vec.normalize().multiplyScalar(50);
+  vec.normalize().multiplyScalar(100);
   sphere.position.set(vec.x,vec.y,vec.z);
+}
+
+var drawing = false;
+
+function onMouseDown(event){
+  if (event.button == 0){ // Left click only
+    drawing = true;
+    addSphere(event.clientX, event.clientY, 1);
+  }
+}
+
+function onMouseMove(event){
+  if (drawing){
+    addSphere(event.clientX, event.clientY, 1);
+  }
+}
+
+function onMouseUp(event){
+  if (event.button == 0){ // Left click only
+    drawing = false;
+  }
+}
+
+function onMouseWheel(event){
+  camera.fov += 0.1 * event.deltaY;
+  camera.updateProjectionMatrix();
   
 }
 
-renderer.domElement.addEventListener( 'mousedown', onMouseDown, false );
+renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+renderer.domElement.addEventListener('wheel', onMouseWheel, false);
 
 </script>
-
+<!-- This prevents the right-click context menu -->
+<body oncontextmenu="return false;">
 </body>
 </html>
