@@ -40,20 +40,26 @@ CubeCam = function ( near, far, cubeResolution ) {
     {
       format: THREE.RGBFormat,
       magFilter: THREE.LinearFilter,
-      minFilter: THREE.LinearFilter,
-      preserveDrawingBuffer: true
+      minFilter: THREE.LinearFilter, 
+      //preserveDrawingBuffer: true
     });
+    
+  var bitmap = [];
+  for (var i = 0; i < 6; i++){
+    bitmap[i] = new Uint8Array(cubeResolution * cubeResolution * 4);
+  }
 
 	this.updateCubeMap = function ( renderer, scene ) {
 
 		var renderTarget = this.renderTarget;
 		var generateMipmaps = renderTarget.generateMipmaps;
 
+    var gl = renderer.getContext();
 		renderTarget.generateMipmaps = false;
 
 		renderTarget.activeCubeFace = 0;
 		renderer.render( scene, cameraPX, renderTarget );
-
+    
 		renderTarget.activeCubeFace = 1;
 		renderer.render( scene, cameraNX, renderTarget );
 
@@ -69,8 +75,85 @@ CubeCam = function ( near, far, cubeResolution ) {
 		renderTarget.activeCubeFace = 5;
 		renderer.render( scene, cameraNZ, renderTarget );
     
+    var buffers = renderTarget.__webglFramebuffer;
+    var resetBuffer = renderer._currentFramebuffer;
+    
+    //read pixels from each cube face
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[0]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[0]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[1]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[1]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[2]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[2]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[3]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[3]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[4]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[4]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, buffers[5]);
+    gl.readPixels(0, 0, cubeResolution, cubeResolution, gl.RGBA, gl.UNSIGNED_BYTE, bitmap[5]);
+    
+    //put buffer and mipmaps back
+    gl.bindFramebuffer(gl.FRAMEBUFFER, resetBuffer);
     renderTarget.generateMipmaps = generateMipmaps;
+    
+    //make a canvas
+    var canvas = document.createElement("canvas");
+    canvas.width = cubeResolution * 4;
+    canvas.height = cubeResolution * 3;
+    var ctx = canvas.getContext("2d");
+    //get the pixels
+    var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var data = imgData.data;
+    
+    //Helper draw function to place each view
+    var drawAt = function(src, srcW, srcH, dst,dstW, x,y,w,h){
+      var sx = x;
+      var sy = y;
+      var ex = x + w;
+      var ey = y + h;
+      for (x = 0; x < srcW; x++){
+        for (y = 0; y < srcH; y++){
+          dst[((dstW * (y+sy)) + x + sx)*4] = src[(srcW*y + x)*4];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 1] = src[(srcW*y + x)*4 + 1];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 2] = src[(srcW*y + x)*4 + 2];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 3] = src[(srcW*y + x)*4 + 3];
+        }
+      }
+    }
+    
+    //draw all the views
+    drawAt(bitmap[0], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 2, cubeResolution * 1, cubeResolution, cubeResolution);
+    drawAt(bitmap[1], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 0, cubeResolution * 1, cubeResolution, cubeResolution);
+    drawAt(bitmap[2], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 0, cubeResolution, cubeResolution);
+    drawAt(bitmap[3], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 2, cubeResolution, cubeResolution);
+    drawAt(bitmap[4], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 1, cubeResolution, cubeResolution);
+    drawAt(bitmap[5], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 3, cubeResolution * 1, cubeResolution, cubeResolution);
+    
+    // Put the data back in the canvas
+    ctx.putImageData(imgData, 0, 0);
+    //download canvas as a png
+    //take apart data URL
+    var parts = canvas.toDataURL().match(/data:([^;]*)(;base64)?,([0-9A-Za-z+/]+)/);
 
+    //assume base64 encoding
+    var binStr = atob(parts[3]);
+
+    //convert to binary in ArrayBuffer
+    var buf = new ArrayBuffer(binStr.length);
+    var view = new Uint8Array(buf);
+    for(var i = 0; i < view.length; i++)
+      view[i] = binStr.charCodeAt(i);
+
+    var blob = new Blob([view], {'type': parts[1]});
+
+    //And then if you want to do something with that blob...
+    var url = URL.createObjectURL(blob);
+    
+    //var url = canvas.toDataURL("image/png");
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "derpadoo.png";
+    a.click();
 	};
 
 };

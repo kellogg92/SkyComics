@@ -31,6 +31,10 @@
 var container, scene, camera, renderer, controls, stats;
 var keyboard = new THREEx.KeyboardState();
 var clock = new THREE.Clock();
+var cubeCam;
+
+var skyBox;
+var sphereGuide;
 
 init();
 animate();
@@ -45,9 +49,11 @@ function init() {
 	camera.position.set(0,0,0);
 	camera.lookAt(new THREE.Vector3(1,0,0));	
   
+  cubeCam = new CubeCam(0.1, 20000, 2048);
+  
 	// Renderer setup
 	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true} );
+		renderer = new THREE.WebGLRenderer( {antialias:true, preserveDrawingBuffer: true} );
 	else
 		renderer = new THREE.CanvasRenderer();
   
@@ -58,6 +64,8 @@ function init() {
   // Setup events
 	THREEx.WindowResize(renderer, camera);
 	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+  
+  //THREEx.Screenshot.bindKey( renderer, { charCode : 'z'.charCodeAt(0) });
   
 	// add skybox view control
   controls = new SkyboxControl(camera, renderer.domElement);
@@ -81,8 +89,14 @@ function init() {
 			side: THREE.BackSide
 		}));
 	var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
-	var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+	skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+  
+  var sphereMat = new THREE.MeshBasicMaterial({ wireframe: true, linewidth: 3});
+  var sphereGeom = new THREE.SphereGeometry( 1000, 12 ,12);
+  sphereGuide = new THREE.Mesh( sphereGeom, sphereMat);
+  scene.add( sphereGuide);
 	scene.add( skyBox );
+  scene.add( cubeCam);
 }
 
 function animate() {
@@ -91,11 +105,13 @@ function animate() {
 	update();
 }
 
+var doRenderCubeMap = false;
+
 function update(){
-	if ( keyboard.pressed("z") ) 
-	{ 
-		// do something
-	}
+  if (doRenderCubeMap){
+    cubeCam.updateCubeMap(renderer, scene);
+    doRenderCubeMap = false;
+  }
   
 	stats.update();
 }
@@ -146,10 +162,25 @@ function onMouseWheel(event){
   
 }
 
+function onKeyDown(event){
+  switch (event.keyCode){
+  case "Z".charCodeAt(0):
+    doRenderCubeMap = true;
+    break;
+  case "1".charCodeAt(0):
+    skyBox.visible = !skyBox.visible;
+    break;
+  case "2".charCodeAt(0):
+    sphereGuide.visible = !sphereGuide.visible;
+    break;
+  }
+}
+
 renderer.domElement.addEventListener('mousedown', onMouseDown, false);
 renderer.domElement.addEventListener('mousemove', onMouseMove, false);
 renderer.domElement.addEventListener('mouseup', onMouseUp, false);
 renderer.domElement.addEventListener('wheel', onMouseWheel, false);
+document.addEventListener('keydown', onKeyDown, false);
 
 </script>
 <!-- This prevents the right-click context menu -->
