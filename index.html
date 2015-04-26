@@ -4,7 +4,10 @@
 	<title>Skybox (Three.js)</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<link rel=stylesheet href="css/base.css"/>
+	<!-- <link rel=stylesheet href="css/jquery-ui.min.css"/>
+  <link rel=stylesheet href="css/jquery-ui.structure.min.css"/>
+  <link rel=stylesheet href="css/jquery-ui.theme.min.css"/> -->
+  <link rel=stylesheet href="css/base.css"/>
 </head>
 <body>
 
@@ -12,12 +15,15 @@
 <script src="js/three.js"></script>
 <script src="js/Detector.js"></script>
 <script src="js/Stats.js"></script>
+<script src="js/dat.gui.js"></script>
+
 <script src="js/THREEx.KeyboardState.js"></script>
 <script src="js/THREEx.FullScreen.js"></script>
 <script src="js/THREEx.WindowResize.js"></script>
 
 <script src="SkyboxControl.js"></script> 
 <script src="CubeCam.js"></script> 
+<script src="Editor.js"></script> 
 <script src="js/jquery-1.11.2.min.js"></script>
 
 </div>
@@ -25,58 +31,49 @@
 
 <div id="ThreeJS" style="position: absolute; left:0px; top:0px"></div>
 <script>
-// MAIN
+// -----------Settings--------------
 
-// standard global variables
-var container, scene, camera, renderer, controls, stats;
+
+// View globals
+var container, scene, camera, renderer, controls;
+
+var editor;
+
+// Control globals
 var keyboard = new THREEx.KeyboardState();
-var clock = new THREE.Clock();
-var cubeCam;
 
-var skyBox;
-var sphereGuide;
+//Run initializations
+InitScene();
+InitEvents();
 
-init();
+//run a frame
 animate();
 
+// Helper functions
+function degToRad(value){
+  return Math.PI * value / 180.0;
+}
+
 // FUNCTIONS 		
-function init() {
+function InitScene(){
 	// SCENE
 	scene = new THREE.Scene();
 	// Camera Setup
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth/ window.innerHeight, 0.1, 20000);
 	scene.add(camera);
 	camera.position.set(0,0,0);
-	camera.lookAt(new THREE.Vector3(1,0,0));	
-  
-  cubeCam = new CubeCam(0.1, 20000, 2048);
+	camera.lookAt(new THREE.Vector3(1,0,0));
   
 	// Renderer setup
 	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true, preserveDrawingBuffer: true} );
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
 	else
 		renderer = new THREE.CanvasRenderer();
-  
   renderer.setSize(window.innerWidth, window.innerHeight);
 	container = document.getElementById( 'ThreeJS' );
 	container.appendChild( renderer.domElement );
 	
-  // Setup events
-	THREEx.WindowResize(renderer, camera);
-	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
-  
-  //THREEx.Screenshot.bindKey( renderer, { charCode : 'z'.charCodeAt(0) });
-  
-	// add skybox view control
-  controls = new SkyboxControl(camera, renderer.domElement);
-  
-	// Add Stats
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.bottom = '0px';
-	stats.domElement.style.zIndex = 100;
-	container.appendChild( stats.domElement );
-	
+  //Skybox
 	var imagePrefix = "images/dawnmountain-";
 	var directions  = ["xpos", "xneg", "ypos", "yneg", "zpos", "zneg"];
 	var imageSuffix = ".png";
@@ -90,13 +87,20 @@ function init() {
 		}));
 	var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
 	skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+  scene.add(skyBox);
+}
+
+function InitEvents(){
+  // Setup events
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
   
-  var sphereMat = new THREE.MeshBasicMaterial({ wireframe: true, linewidth: 3});
-  var sphereGeom = new THREE.SphereGeometry( 1000, 12 ,12);
-  sphereGuide = new THREE.Mesh( sphereGeom, sphereMat);
-  scene.add( sphereGuide);
-	scene.add( skyBox );
-  scene.add( cubeCam);
+	// add skybox view control
+  controls = new SkyboxControl(camera, renderer.domElement);
+  controls.bind(2); //Mouse right click
+  
+  editor = new Editor(scene);
+  editor.bind(0, "Z", renderer.domElement); // Left mouse click
 }
 
 function animate() {
@@ -105,85 +109,25 @@ function animate() {
 	update();
 }
 
-var doRenderCubeMap = false;
-
 function update(){
-  if (doRenderCubeMap){
-    cubeCam.updateCubeMap(renderer, scene);
-    doRenderCubeMap = false;
-  }
-  
-	stats.update();
+  editor.Update();
 }
 
 function render() {
+  editor.Render();
 	renderer.render( scene, camera );
-}
-
-var sphereGeo = new THREE.SphereGeometry( 1, 10, 10 );
-var sphereMat = new THREE.MeshBasicMaterial( {color: 0x44dddd} );
-
-function addSphere(screenX, screenY, screenRad){
-//TODO: use screenRad  
-  var sphere = new THREE.Mesh(sphereGeo, sphereMat);
-  scene.add( sphere );
-  var vec = new THREE.Vector3( (screenX / window.innerWidth ) * 2 - 1,
-                              - (screenY / window.innerHeight ) * 2 + 1,
-                              0.5);
-  vec.unproject(camera);
-  vec.normalize().multiplyScalar(100);
-  sphere.position.set(vec.x,vec.y,vec.z);
-}
-
-var drawing = false;
-
-function onMouseDown(event){
-  if (event.button == 0){ // Left click only
-    drawing = true;
-    addSphere(event.clientX, event.clientY, 1);
-  }
-}
-
-function onMouseMove(event){
-  if (drawing){
-    addSphere(event.clientX, event.clientY, 1);
-  }
-}
-
-function onMouseUp(event){
-  if (event.button == 0){ // Left click only
-    drawing = false;
-  }
 }
 
 function onMouseWheel(event){
   camera.fov += 0.1 * event.deltaY;
   camera.updateProjectionMatrix();
-  
 }
 
-function onKeyDown(event){
-  switch (event.keyCode){
-  case "Z".charCodeAt(0):
-    doRenderCubeMap = true;
-    break;
-  case "1".charCodeAt(0):
-    skyBox.visible = !skyBox.visible;
-    break;
-  case "2".charCodeAt(0):
-    sphereGuide.visible = !sphereGuide.visible;
-    break;
-  }
-}
 
-renderer.domElement.addEventListener('mousedown', onMouseDown, false);
-renderer.domElement.addEventListener('mousemove', onMouseMove, false);
-renderer.domElement.addEventListener('mouseup', onMouseUp, false);
 renderer.domElement.addEventListener('wheel', onMouseWheel, false);
-document.addEventListener('keydown', onKeyDown, false);
-
 </script>
 <!-- This prevents the right-click context menu -->
 <body oncontextmenu="return false;">
+<input id="openFile" type="file" style="visibility:hidden" />
 </body>
 </html>

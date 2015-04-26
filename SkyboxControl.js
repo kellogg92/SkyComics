@@ -9,8 +9,14 @@ SkyboxControl = function(camera, domElement){
   var scope = this;
   var PI = 3.141592654;
   
+  this.mouseButton = 2;//right click
+  
   // Function Definitions
   this.onMouseMove = function(event){
+    if (!(this===scope)){
+      scope.onMouseMove(event);
+      return;
+    }
     if (!this.enabled) return;
     if (!this.down) return;
     var mouseX = event.clientX;
@@ -34,8 +40,12 @@ SkyboxControl = function(camera, domElement){
   }
   
   this.onMouseDown = function (event){
+    if (!(this===scope)){
+      scope.onMouseDown(event);
+      return;
+    }
     // Only capture right mouse button
-    if (event.button == 2){
+    if (event.button == mouseButton){
       this.prevMouseX = event.clientX;
       this.prevMouseY = event.clientY;
       this.down = true;
@@ -43,24 +53,31 @@ SkyboxControl = function(camera, domElement){
   };
   
   this.onMouseUp = function(event){
-    if (event.button == 2){
+    if (!(this===scope)){
+      scope.onMouseUp(event);
+      return;
+    }
+    if (event.button == mouseButton){
       this.down = false;
     }
   }
   
-  function onMouseWheel(event){
+  // Function registration
+  this.bind = function(_mouseButton){
+    this.domElement.addEventListener( 'mousedown', scope.onMouseDown, false );
+    this.domElement.addEventListener( 'mouseup', scope.onMouseUp, false );
+    this.domElement.addEventListener( 'mousemove', scope.onMouseMove, false );
+    mouseButton = _mouseButton;
   }
   
-  function onKeyDown(event){}
-  
-  function onKeyUp(event){}
+  this.rebind = function(_mouseButton){
+    mouseButton = _mouseButton;
+  }
   
   // Function registration
-  //this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
-	this.domElement.addEventListener( 'mousedown', function(e){scope.onMouseDown(e)}, false );
-  this.domElement.addEventListener( 'mouseup', function(e){scope.onMouseUp(e)}, false );
-	this.domElement.addEventListener( 'mousewheel', function(e){scope.onMouseWheel(e)}, false );
-  this.domElement.addEventListener( 'mousemove', function(e){scope.onMouseMove(e)}, false );
-  window.addEventListener( 'keydown', onKeyDown, false );
-	window.addEventListener( 'keyup', onKeyUp, false );
+  this.unbind = function(){
+   /* this.domElement.removeEventListener( 'mousedown', function(e){scope.onMouseDown(e)}, false );
+    this.domElement.removeEventListener( 'mouseup', function(e){scope.onMouseUp(e)}, false );
+    this.domElement.removeEventListener( 'mousemove', function(e){scope.onMouseMove(e)}, false );*/
+  }
 };
