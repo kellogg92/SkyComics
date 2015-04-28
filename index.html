@@ -66,28 +66,17 @@ function InitScene(){
   
 	// Renderer setup
 	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true} );
+		renderer = new THREE.WebGLRenderer( {antialias:true, preserveDrawingBuffer: true} );
 	else
 		renderer = new THREE.CanvasRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0xFFFFFF);
 	container = document.getElementById( 'ThreeJS' );
 	container.appendChild( renderer.domElement );
 	
   //Skybox
-	var imagePrefix = "images/dawnmountain-";
-	var directions  = ["xpos", "xneg", "ypos", "yneg", "zpos", "zneg"];
-	var imageSuffix = ".png";
-	var skyGeometry = new THREE.BoxGeometry( 5000, 5000, 5000 );	
-	
-	var materialArray = [];
-	for (var i = 0; i < 6; i++)
-		materialArray.push( new THREE.MeshBasicMaterial({
-			map: THREE.ImageUtils.loadTexture( imagePrefix + directions[i] + imageSuffix ),
-			side: THREE.BackSide
-		}));
-	var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
-	skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
-  scene.add(skyBox);
+  /*skyBox = MakeSkybox();
+  scene.add(skyBox);*/
 }
 
 function InitEvents(){
@@ -100,7 +89,7 @@ function InitEvents(){
   controls.bind(2); //Mouse right click
   
   editor = new Editor(scene);
-  editor.bind(0, "Z", renderer.domElement); // Left mouse click
+  editor.bind(0, renderer.domElement); // Left mouse click
 }
 
 function animate() {

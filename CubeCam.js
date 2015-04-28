@@ -1,9 +1,14 @@
 CubeCam = function ( near, far, cubeResolution ) {
 
 	THREE.Object3D.call( this );
-
+  this.resolution = cubeResolution;
 	this.type = 'CubeCam';
 
+  //make a reusable canvas
+  canvas = document.createElement("canvas");
+  canvas.width = cubeResolution * 4;
+  canvas.height = cubeResolution * 3;
+  
 	var fov = 90, aspect = 1;
 
 	var cameraPX = new THREE.PerspectiveCamera( fov, aspect, near, far );
@@ -96,10 +101,6 @@ CubeCam = function ( near, far, cubeResolution ) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, resetBuffer);
     renderTarget.generateMipmaps = generateMipmaps;
     
-    //make a canvas
-    var canvas = document.createElement("canvas");
-    canvas.width = cubeResolution * 4;
-    canvas.height = cubeResolution * 3;
     var ctx = canvas.getContext("2d");
     //get the pixels
     var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -152,7 +153,7 @@ CubeCam = function ( near, far, cubeResolution ) {
     //var url = canvas.toDataURL("image/png");
     var a = document.createElement("a");
     a.href = url;
-    a.download = "derpadoo.png";
+    a.download = "CubeMapSave.png";
     a.click();
 	};
 
