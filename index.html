@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<title>Skybox (Three.js)</title>
+	<title>SkyComics</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<!-- <link rel=stylesheet href="css/jquery-ui.min.css"/>
@@ -62,7 +62,7 @@ function InitScene(){
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth/ window.innerHeight, 0.1, 20000);
 	scene.add(camera);
 	camera.position.set(0,0,0);
-	camera.lookAt(new THREE.Vector3(1,0,0));
+	camera.lookAt(new THREE.Vector3(0,0, -1));
   
 	// Renderer setup
 	if ( Detector.webgl )

@@ -12,12 +12,12 @@ CubeCam = function ( near, far, cubeResolution ) {
 	var fov = 90, aspect = 1;
 
 	var cameraPX = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	cameraPX.up.set( 0, - 1, 0 );
+	cameraPX.up.set( 0, 1, 0 );
 	cameraPX.lookAt( new THREE.Vector3( 1, 0, 0 ) );
 	this.add( cameraPX );
 
 	var cameraNX = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	cameraNX.up.set( 0, - 1, 0 );
+	cameraNX.up.set( 0, 1, 0 );
 	cameraNX.lookAt( new THREE.Vector3( - 1, 0, 0 ) );
 	this.add( cameraNX );
 
@@ -32,12 +32,12 @@ CubeCam = function ( near, far, cubeResolution ) {
 	this.add( cameraNY );
 
 	var cameraPZ = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	cameraPZ.up.set( 0, - 1, 0 );
+	cameraPZ.up.set( 0, 1, 0 );
 	cameraPZ.lookAt( new THREE.Vector3( 0, 0, 1 ) );
 	this.add( cameraPZ );
 
 	var cameraNZ = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	cameraNZ.up.set( 0, - 1, 0 );
+	cameraNZ.up.set( 0, 1, 0 );
 	cameraNZ.lookAt( new THREE.Vector3( 0, 0, - 1 ) );
 	this.add( cameraNZ );
 
@@ -45,7 +45,8 @@ CubeCam = function ( near, far, cubeResolution ) {
     {
       format: THREE.RGBFormat,
       magFilter: THREE.LinearFilter,
-      minFilter: THREE.LinearFilter, 
+      minFilter: THREE.LinearFilter,
+      antialias: true
       //preserveDrawingBuffer: true
     });
     
@@ -109,26 +110,32 @@ CubeCam = function ( near, far, cubeResolution ) {
     //Helper draw function to place each view
     var drawAt = function(src, srcW, srcH, dst,dstW, x,y,w,h){
       var sx = x;
-      var sy = y;
+      var sy = y; //flip
       var ex = x + w;
       var ey = y + h;
       for (x = 0; x < srcW; x++){
         for (y = 0; y < srcH; y++){
-          dst[((dstW * (y+sy)) + x + sx)*4] = src[(srcW*y + x)*4];
-          dst[((dstW * (y+sy)) + x + sx)*4 + 1] = src[(srcW*y + x)*4 + 1];
-          dst[((dstW * (y+sy)) + x + sx)*4 + 2] = src[(srcW*y + x)*4 + 2];
-          dst[((dstW * (y+sy)) + x + sx)*4 + 3] = src[(srcW*y + x)*4 + 3];
+          dst[((dstW * (y+sy)) + x + sx)*4] = src[(srcW*(h-y-1) + x)*4];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 1] = src[(srcW*(h-y-1) + x)*4 + 1];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 2] = src[(srcW*(h-y-1) + x)*4 + 2];
+          dst[((dstW * (y+sy)) + x + sx)*4 + 3] = src[(srcW*(h-y-1) + x)*4 + 3];
         }
       }
     }
     
     //draw all the views
+    //PX - Right
     drawAt(bitmap[0], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 2, cubeResolution * 1, cubeResolution, cubeResolution);
+    //NX - Left
     drawAt(bitmap[1], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 0, cubeResolution * 1, cubeResolution, cubeResolution);
+    //PY - Top
     drawAt(bitmap[2], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 0, cubeResolution, cubeResolution);
+    //NY - Bottom
     drawAt(bitmap[3], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 2, cubeResolution, cubeResolution);
-    drawAt(bitmap[4], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 1, cubeResolution, cubeResolution);
-    drawAt(bitmap[5], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 3, cubeResolution * 1, cubeResolution, cubeResolution);
+    //PZ - Back
+    drawAt(bitmap[4], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 3, cubeResolution * 1, cubeResolution, cubeResolution);
+    //NZ - Front
+    drawAt(bitmap[5], cubeResolution, cubeResolution, data, imgData.width, cubeResolution * 1, cubeResolution * 1, cubeResolution, cubeResolution);
     
     // Put the data back in the canvas
     ctx.putImageData(imgData, 0, 0);
