@@ -35,6 +35,10 @@ SkyboxControl = function(camera, domElement){
     this.camera.rotation.y+= rotX;
     this.camera.rotation.x+= rotY;
     
+    var maxRotX = degToRad(80);
+    var minRotX = degToRad(-80);
+    this.camera.rotation.x = Math.max(Math.min(this.camera.rotation.x, maxRotX), minRotX);
+    
     this.prevMouseX = mouseX;
     this.prevMouseY = mouseY;
   }
@@ -44,8 +48,8 @@ SkyboxControl = function(camera, domElement){
       scope.onMouseDown(event);
       return;
     }
-    // Only capture right mouse button
-    if (event.button == mouseButton){
+    // Only capture bound mouse button
+    if (event.button == this.mouseButton){
       this.prevMouseX = event.clientX;
       this.prevMouseY = event.clientY;
       this.down = true;
@@ -57,7 +61,7 @@ SkyboxControl = function(camera, domElement){
       scope.onMouseUp(event);
       return;
     }
-    if (event.button == mouseButton){
+    if (event.button == this.mouseButton){
       this.down = false;
     }
   }
@@ -66,8 +70,8 @@ SkyboxControl = function(camera, domElement){
   this.bind = function(_mouseButton){
     this.domElement.addEventListener( 'mousedown', scope.onMouseDown, false );
     this.domElement.addEventListener( 'mouseup', scope.onMouseUp, false );
-    this.domElement.addEventListener( 'mousemove', scope.onMouseMove, false );
-    mouseButton = _mouseButton;
+    this.domElement.addEventListener( 'mousemove', function(ev){scope.onMouseMove(ev);}, false );
+    this.mouseButton = _mouseButton;
   }
   
   this.rebind = function(_mouseButton){

@@ -13,20 +13,16 @@
 
 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r71/three.min.js"></script> -->
 <script src="js/three.js"></script>
-<script src="js/ConvexGeometry.js"></script>
 <script src="js/Detector.js"></script>
-<script src="js/Stats.js"></script>
-<script src="js/dat.gui.js"></script>
 <script src="js/hammer.min.js"></script>
+<script src="js/URI.js"></script> 
 
 <script src="js/THREEx.KeyboardState.js"></script>
 <script src="js/THREEx.FullScreen.js"></script>
 <script src="js/THREEx.WindowResize.js"></script>
 
-<script src="SkyboxControl.js"></script> 
-<script src="CubeCam.js"></script>
-<script src="Skybox.js"></script> 
-<script src="Editor.js"></script> 
+<script src="SkyboxControl.js"></script>
+<script src="Skybox.js"></script>
 <script src="js/jquery-1.11.2.min.js"></script>
 
 </div>
@@ -36,14 +32,8 @@
 <script>
 // -----------Settings--------------
 
-
 // View globals
 var container, scene, camera, renderer, controls;
-
-var editor;
-
-// Control globals
-var keyboard = new THREEx.KeyboardState();
 
 //Run initializations
 InitScene();
@@ -51,6 +41,9 @@ InitEvents();
 
 //run a frame
 animate();
+
+var textures;
+var currentTexture = 0;
 
 // Helper functions
 function degToRad(value){
@@ -62,17 +55,7 @@ function getLatLong(screenX, screenY){
                               - (screenY / window.innerHeight ) * 2 + 1,
                               0.5);
   vec.unproject(camera);
-  return {lon: 180 * Math.atan2(vec.x,-vec.z) / Math.PI, lat: 180 * Math.atan2(vec.y,Math.sqrt(vec.x*vec.x+vec.z*vec.z)) / Math.PI};
-}
-
-function posFromLatLong(lat, lon){
-  lat = degToRad(lat);
-  lon = degToRad(lon);
-  var vec = new THREE.Vector3();
-  vec.x = Math.sin(lon)*Math.cos(lat);
-  vec.z = -Math.cos(lon)*Math.cos(lat);
-  vec.y = Math.sin(lat);
-  return vec;
+  return {lon: 180 * Math.atan(vec.x/vec.z) / Math.PI, lat: 180 * Math.atan(Math.sqrt(vec.x*vec.x+vec.z*vec.z)/vec.y) / Math.PI};
 }
 
 // FUNCTIONS 		
@@ -94,33 +77,49 @@ function InitScene(){
   renderer.setClearColor(0xFFFFFF);
 	container = document.getElementById( 'ThreeJS' );
 	container.appendChild( renderer.domElement );
+	
+  //Scene
+  var sceneTexture;
+  var uriAsObj = new URI((''+document.location)).search(true);
+  if (uriAsObj.img != undefined){
+    sceneTexture = THREE.ImageUtils.loadTexture(uriAsObj.img);
+  } else {
+    sceneTexture = THREE.ImageUtils.loadTexture("books/testBook/studio_color.png");
+  }
+  sceneTexture.minFilter = THREE.LinearFilter;
+  
+  textures = [];
+  textures[0] = sceneTexture;
+  textures[1] = THREE.ImageUtils.loadTexture("images/studio_comic1.png");
+  textures[2] = THREE.ImageUtils.loadTexture("images/background.png");
+  
+  
+  //Skybox
+  skyBox = Skybox.MakeSkybox();
+  skyBox.material.map = sceneTexture;
+  scene.add(skyBox);
 }
 
 function InitEvents(){
   // Setup events
 	THREEx.WindowResize(renderer, camera);
-	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0), dblclick:true });
   
 	// add skybox view control
   controls = new SkyboxControl(camera, renderer.domElement);
-  controls.bind(2); //Mouse right click
-  
-  editor = new Editor(scene);
-  editor.bind(0, renderer.domElement); // Left mouse click
+  controls.bind(42); //False value for hammer control
 }
 
 function animate() {
   requestAnimationFrame( animate );
-	render();		
+	render();
 	update();
 }
 
 function update(){
-  editor.Update();
 }
 
 function render() {
-  editor.Render();
 	renderer.render( scene, camera );
 }
 
@@ -135,17 +134,24 @@ renderer.domElement.addEventListener('wheel', onMouseWheel, false);
 
 addPinchRecognizer();
 function addPinchRecognizer(){
-  var myElement = document.getElementById('ThreeJS');
+  var buttonVal = 42;
 
-  var mc = new Hammer.Manager(myElement);
+  var mc = new Hammer(renderer.domElement);
   
   var pinch = new Hammer.Pinch();
 
   // add to the Manager
   mc.add(pinch);
   
-  mc.add(new Hammer.Pan());
+  mc.add(new Hammer.Pan({direction:Hammer.DIRECTION_ALL, threshold:0}));
+  
+  mc.add(new Hammer.Tap());
   var scale = 1.0;
+  mc.on("tap" , function(ev){
+    latlon = getLatLong(ev.center.x, ev.center.y);
+    console.log("tap at lat:" + latlon.lat+ ", lon:" + latlon.lon);
+  });
+  
   mc.on("pinchstart", function(ev){
     scale = ev.scale;
   });
@@ -156,32 +162,46 @@ function addPinchRecognizer(){
     scale = ev.scale;
   });
   mc.on("panstart", function(ev) {
-    if (ev.pointerType == 'mouse') return;
     ev.preventDefault();
     ev.clientX = ev.center.x;
     ev.clientY = ev.center.y;
-    ev.button = 2; //right click
+    ev.button = buttonVal; //right click
     controls.onMouseDown(ev);
   });
 
   mc.on("panend", function(ev) {
-    if (ev.pointerType == 'mouse') return;
     ev.preventDefault();
     ev.clientX = ev.center.x;
     ev.clientY = ev.center.y;
-    ev.button = 2; //right click
+    ev.button = buttonVal; //right click
     controls.onMouseUp(ev);
   });
   
-  mc.on("pan", function(ev) {
-    if (ev.pointerType == 'mouse') return;
+  mc.on("panmove", function(ev) {
     ev.preventDefault();
     ev.clientX = ev.center.x;
     ev.clientY = ev.center.y;
-    ev.button = 2; //right click
+    ev.button = buttonVal; //right click
     controls.onMouseMove(ev);
   });
 }
+
+function onKeyDown(event){
+  if (event.keyCode == 37){ //Left arrow
+    currentTexture--;
+    if (currentTexture <0) currentTexture = textures.length - 1;
+    sceneTexture = textures[currentTexture];
+    skyBox.material.map = sceneTexture;
+  } else if (event.keyCode == 39){ //Right arrow
+    currentTexture++;
+    if (currentTexture == textures.length) currentTexture = 0;
+    sceneTexture = textures[currentTexture];
+    skyBox.material.map = sceneTexture;
+    
+  }
+}
+document.addEventListener("keydown", onKeyDown, false);
+
 </script>
 <!-- This prevents the right-click context menu -->
 <body oncontextmenu="return false;">
